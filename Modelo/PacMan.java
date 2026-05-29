@@ -1,4 +1,4 @@
-package model;
+package Modelo;
 
 /**
  * Clase PacMan. Hereda de Entidad e implementa Movible.

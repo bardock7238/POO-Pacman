@@ -1,4 +1,4 @@
-package model;
+package Modelo;
 
 /**
  * Interfaz que define el comportamiento de movimiento.

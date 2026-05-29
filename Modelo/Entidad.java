@@ -1,4 +1,4 @@
-package model;
+package Modelo;
 
 /**
  * Clase abstracta base para todas las entidades del juego.

@@ -1,10 +1,10 @@
-package controller;
+package Controlador;
 
-import model.JuegoModelo;
-import model.JuegoModelo.EstadoJuego;
-import model.PacMan;
-import view.JuegoPanel;
-import view.VentanaPrincipal;
+import Modelo.JuegoModelo;
+import Modelo.JuegoModelo.EstadoJuego;
+import Modelo.PacMan;
+import Vista.JuegoPanel;
+import Vista.VentanaPrincipal;
 
 import javax.swing.*;
 import java.awt.event.*;

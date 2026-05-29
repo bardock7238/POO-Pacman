@@ -1,7 +1,7 @@
-package view;
+package Vista;
 
-import model.*;
-import model.JuegoModelo.EstadoJuego;
+import Modelo.*;
+import Modelo.JuegoModelo.EstadoJuego;
 
 import javax.swing.*;
 import java.awt.*;

@@ -1,4 +1,4 @@
-package model;
+package Modelo;
 
 /**
  * Modelo del laberinto. Contiene el mapa, los pellets y la lógica de colisiones.
