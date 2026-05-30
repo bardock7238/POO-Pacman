@@ -8,6 +8,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Glow;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -28,22 +29,35 @@ import javax.swing.SwingUtilities;
 
 public class MenuPrincipal extends Application {
 
+    private static Stage stageGlobal;
+
+    // Animación Pac-Man
     private double[] pelletX = new double[8];
     private double xPacman = -40;
     private double anguloBoca = 30;
     private boolean bocaAbriendo = false;
     private long tiempoAnterior = 0;
 
+    private static final int W = 456;
+    // Zona superior: animación de fondo (canvas completo, detrás de todo)
+    // Zona de botones visible: 500px
+    // Zona inferior: animación Pac-Man corriendo: 80px
+    private static final int H = 580;
+    private static final int H_PACMAN_ZONE = 80;
+
     @Override
     public void start(Stage escenario) {
-        Canvas lienzo = new Canvas(456, 550);
+        stageGlobal = escenario;
+
+        // ── Canvas de fondo (gradiente + pac-man corriendo en la franja inferior) ──
+        Canvas lienzo = new Canvas(W, H + H_PACMAN_ZONE);
         GraphicsContext gc = lienzo.getGraphicsContext2D();
 
         for (int i = 0; i < pelletX.length; i++) {
             pelletX[i] = 60 + i * 52;
         }
 
-        // ── Título ─────────────────────────────────────────────────────
+        // ── Elementos del menú ──
         Text titulo = new Text("PAC-MAN");
         titulo.setFont(Font.font("Arial", FontWeight.EXTRA_BOLD, 64));
         titulo.setFill(Color.YELLOW);
@@ -56,26 +70,36 @@ public class MenuPrincipal extends Application {
         subtitulo.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         subtitulo.setFill(Color.LIGHTCYAN);
 
-        // ── Botones ────────────────────────────────────────────────────
         Button btnJugar         = crearBoton("▶  JUGAR",         "#FFD700", "#FF8C00");
         Button btnInstrucciones = crearBoton("?  INSTRUCCIONES", "#00FFFF", "#0088AA");
+        Button btnTablero       = crearBoton("🏆  TABLERO",      "#AAFFAA", "#007700");
         Button btnSalir         = crearBoton("✕  SALIR",         "#FF4444", "#AA0000");
 
         btnJugar.setOnAction(e -> iniciarJuego(escenario));
         btnInstrucciones.setOnAction(e -> mostrarInstrucciones(escenario));
-        btnSalir.setOnAction(e -> { escenario.close(); Platform.exit(); System.exit(0); });
+        btnTablero.setOnAction(e -> mostrarTablero(escenario));
+        btnSalir.setOnAction(e -> { escenario.close(); System.exit(0); });
 
-        VBox contenedor = new VBox(18, titulo, subtitulo, btnJugar, btnInstrucciones, btnSalir);
+        // VBox centrado con todos los botones — sin TranslateY
+        VBox contenedor = new VBox(14, titulo, subtitulo,
+                btnJugar, btnInstrucciones, btnTablero, btnSalir);
         contenedor.setAlignment(Pos.CENTER);
-        contenedor.setTranslateY(-30);
+        contenedor.setPrefSize(W, H);
 
+        // StackPane: canvas de fondo DETRÁS, contenedor ENCIMA
+        // El canvas ocupa toda la ventana; los botones flotan sobre él
         StackPane raiz = new StackPane(lienzo, contenedor);
         raiz.setStyle("-fx-background-color: black;");
+        raiz.setPrefSize(W, H + H_PACMAN_ZONE);
 
-        Scene escena = new Scene(raiz, 456, 550);
+        // Alinear el VBox en la parte superior del StackPane
+        // para que la franja inferior quede libre para el pac-man
+        StackPane.setAlignment(contenedor, Pos.TOP_CENTER);
+
+        Scene escena = new Scene(raiz, W, H + H_PACMAN_ZONE);
         escena.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.ENTER) iniciarJuego(escenario); });
 
-        // ── Animación fondo ────────────────────────────────────────────
+        // ── AnimationTimer ──
         new AnimationTimer() {
             @Override
             public void handle(long ahora) {
@@ -83,31 +107,39 @@ public class MenuPrincipal extends Application {
                 double dt = (ahora - tiempoAnterior) / 1_000_000_000.0;
                 tiempoAnterior = ahora;
 
-                gc.clearRect(0, 0, 456, 550);
+                int total = H + H_PACMAN_ZONE;
+                gc.clearRect(0, 0, W, total);
 
-                LinearGradient degradado = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
-                    new Stop(0, Color.web("#000010")), new Stop(1, Color.web("#000030")));
+                // Fondo degradado
+                LinearGradient degradado = new LinearGradient(0, 0, 0, 1, true,
+                        CycleMethod.NO_CYCLE,
+                        new Stop(0, Color.web("#000010")),
+                        new Stop(1, Color.web("#000030")));
                 gc.setFill(degradado);
-                gc.fillRect(0, 0, 456, 550);
+                gc.fillRect(0, 0, W, total);
 
+                // Línea separadora
+                gc.setStroke(Color.web("#0033AA"));
+                gc.setLineWidth(2);
+                gc.strokeLine(0, H, W, H);
+
+                // Pac-Man corriendo en la franja inferior
                 xPacman += 120 * dt;
-                if (xPacman > 500) xPacman = -40;
+                if (xPacman > W + 20) xPacman = -40;
 
                 if (bocaAbriendo) { anguloBoca += 120 * dt; if (anguloBoca >= 40) bocaAbriendo = false; }
                 else              { anguloBoca -= 120 * dt; if (anguloBoca <= 3)  bocaAbriendo = true;  }
 
+                double pacY = H + (H_PACMAN_ZONE - 32) / 2.0;
                 gc.setFill(Color.YELLOW);
-                gc.fillArc(xPacman, 400, 32, 32, anguloBoca, 360 - anguloBoca * 2,
-                           javafx.scene.shape.ArcType.ROUND);
+                gc.fillArc(xPacman, pacY, 32, 32, anguloBoca, 360 - anguloBoca * 2,
+                        javafx.scene.shape.ArcType.ROUND);
 
                 gc.setFill(Color.web("#FFE0B0"));
+                double pelletY = H + H_PACMAN_ZONE / 2.0 - 4;
                 for (double px : pelletX) {
-                    if (px > xPacman + 16) gc.fillOval(px, 412, 8, 8);
+                    if (px > xPacman + 16) gc.fillOval(px, pelletY, 8, 8);
                 }
-
-                gc.setStroke(Color.web("#0033AA"));
-                gc.setLineWidth(2);
-                gc.strokeLine(0, 395, 456, 395);
             }
         }.start();
 
@@ -115,6 +147,12 @@ public class MenuPrincipal extends Application {
         escenario.setScene(escena);
         escenario.setResizable(false);
         escenario.show();
+    }
+
+    public static void mostrarMenu() {
+        if (stageGlobal != null) {
+            Platform.runLater(() -> stageGlobal.show());
+        }
     }
 
     private Button crearBoton(String texto, String colorTexto, String colorSombra) {
@@ -136,14 +174,53 @@ public class MenuPrincipal extends Application {
     }
 
     private void iniciarJuego(Stage escenario) {
-        escenario.close();
-        Platform.exit();
+        escenario.hide();
         SwingUtilities.invokeLater(() -> {
             JuegoModelo modelo = new JuegoModelo();
             VentanaPrincipal vista = new VentanaPrincipal(modelo);
             new JuegoControlador(modelo, vista);
             vista.getJuegoPanel().requestFocusInWindow();
         });
+    }
+
+    private void mostrarTablero(Stage duenio) {
+        Stage ventana = new Stage();
+        ventana.initOwner(duenio);
+        ventana.setTitle("🏆 Tablero de Puntuación");
+
+        Text tituloT = new Text("🏆  TOP 5 PUNTAJES");
+        tituloT.setFont(Font.font("Arial", FontWeight.EXTRA_BOLD, 22));
+        tituloT.setFill(Color.YELLOW);
+
+        java.util.List<String> lineas = Tablero.cargarPuntajes();
+        VBox lista = new VBox(10);
+        lista.setAlignment(Pos.CENTER_LEFT);
+
+        if (lineas.isEmpty()) {
+            Text vacio = new Text("  Aún no hay puntajes guardados.\n  ¡Juega una partida primero!");
+            vacio.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
+            vacio.setFill(Color.LIGHTGRAY);
+            lista.getChildren().add(vacio);
+        } else {
+            String[] medallas = {"🥇", "🥈", "🥉", "4.", "5."};
+            for (int i = 0; i < lineas.size(); i++) {
+                Text entry = new Text("  " + medallas[i] + "  " + lineas.get(i));
+                entry.setFont(Font.font("Courier New", FontWeight.BOLD, 16));
+                entry.setFill(i == 0 ? Color.GOLD : i == 1 ? Color.SILVER : Color.web("#cd7f32"));
+                if (i > 2) entry.setFill(Color.LIGHTCYAN);
+                lista.getChildren().add(entry);
+            }
+        }
+
+        Button btnCerrar = crearBoton("CERRAR", "#FFD700", "#FF8C00");
+        btnCerrar.setOnAction(e -> ventana.close());
+
+        VBox raiz = new VBox(20, tituloT, lista, btnCerrar);
+        raiz.setAlignment(Pos.CENTER);
+        raiz.setStyle("-fx-background-color: #000020; -fx-padding: 30;");
+        ventana.setScene(new Scene(raiz, 320, 320));
+        ventana.setResizable(false);
+        ventana.show();
     }
 
     private void mostrarInstrucciones(Stage duenio) {
@@ -179,7 +256,6 @@ public class MenuPrincipal extends Application {
         VBox raiz = new VBox(20, caja, btnCerrar);
         raiz.setAlignment(Pos.CENTER);
         raiz.setStyle("-fx-background-color: #000020;");
-
         ventana.setScene(new Scene(raiz, 320, 420));
         ventana.setResizable(false);
         ventana.show();

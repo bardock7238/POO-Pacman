@@ -7,51 +7,41 @@ import Vista.JuegoPanel;
 import Vista.VentanaPrincipal;
 import java.awt.event.*;
 import javax.swing.*;
-import Vista.MenuPrincipal;
 
-/**
- * Controlador principal del juego (MVC - Controlador).
- * Gestiona eventos de teclado, el temporizador y el flujo del juego.
- */
 public class JuegoControlador implements KeyListener {
 
     private JuegoModelo modelo;
     private VentanaPrincipal ventana;
-    private Timer timerJuego; // Hilo de renderizado / lógica principal
+    private Timer timerJuego;
 
-    // Tasa de refresco: ~60 fps
     private static final int DELAY_MS = 16;
 
     public JuegoControlador(JuegoModelo modelo, VentanaPrincipal ventana) {
         this.modelo = modelo;
         this.ventana = ventana;
 
-        // Registrar listener de teclado en el panel
         JuegoPanel panel = ventana.getJuegoPanel();
         panel.setFocusable(true);
         panel.addKeyListener(this);
 
-        // Temporizador principal del juego (usa Swing Timer — hilo EDT)
         timerJuego = new Timer(DELAY_MS, e -> {
             modelo.actualizar();
             panel.repaint();
 
-            // Detener el timer si el juego terminó
             EstadoJuego estado = modelo.getEstadoJuego();
             if (estado == EstadoJuego.VICTORIA || estado == EstadoJuego.GAME_OVER) {
                 timerJuego.stop();
+                // Guardar puntaje automáticamente al terminar
+                Vista.Tablero.guardarPuntaje("Jugador", modelo.getPuntuacion());
             }
         });
     }
-
-    // ─── KeyListener ────────────────────────────────────────────────────────────
 
     @Override
     public void keyPressed(KeyEvent e) {
         int tecla = e.getKeyCode();
         EstadoJuego estado = modelo.getEstadoJuego();
 
-        // ENTER: iniciar / reanudar
         if (tecla == KeyEvent.VK_ENTER) {
             if (estado == EstadoJuego.INICIO || estado == EstadoJuego.PAUSADO) {
                 if (estado == EstadoJuego.INICIO) {
@@ -64,7 +54,6 @@ public class JuegoControlador implements KeyListener {
             }
         }
 
-        // P: pausar / reanudar en pleno juego
         if (tecla == KeyEvent.VK_P && (estado == EstadoJuego.EN_CURSO || estado == EstadoJuego.PAUSADO)) {
             modelo.pausar();
             return;
@@ -81,25 +70,10 @@ public class JuegoControlador implements KeyListener {
             timerJuego.stop();
             modelo.detenerHilosFantasmas();
             ventana.dispose();
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                try {
-                    javafx.application.Platform.startup(() -> {});
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-                javafx.application.Platform.runLater(() -> {
-                    try {
-                        new MenuPrincipal().start(new javafx.stage.Stage());
-                    } catch (Exception ex2) {
-                        ex2.printStackTrace();
-                    }
-                });
-            });
+            Vista.MenuPrincipal.mostrarMenu();
             return;
         }
-        
 
-        // R: reiniciar desde GAME_OVER o VICTORIA
         if (tecla == KeyEvent.VK_R &&
             (estado == EstadoJuego.GAME_OVER || estado == EstadoJuego.VICTORIA)) {
             timerJuego.stop();
@@ -108,7 +82,6 @@ public class JuegoControlador implements KeyListener {
             return;
         }
 
-        // Movimiento — solo si el juego está en curso
         if (estado != EstadoJuego.EN_CURSO) return;
 
         PacMan pacman = modelo.getPacman();
