@@ -34,7 +34,7 @@ public class Fantasma extends Entidad implements Runnable, Movible {
         this.random = new Random();
         this.modelo = modelo;
         this.corriendo = false;
-        elegirDireccionAleatoria();
+        dirActual = new int[]{1, 0};
     }
 
     @Override
@@ -42,10 +42,10 @@ public class Fantasma extends Entidad implements Runnable, Movible {
         corriendo = true;
         while (corriendo) {
             try {
-                Thread.sleep(estado == EstadoFantasma.ASUSTADO ? 200 : 120);
+                Thread.sleep(estado == EstadoFantasma.ASUSTADO ? 32 : 16);
                 if (modelo.getEstadoJuego() == JuegoModelo.EstadoJuego.EN_CURSO) {
                     synchronized (modelo) {
-                        mover(modelo.getLaberinto());
+                        if (activo) mover(modelo.getLaberinto());
                     }
                 }
                 if (timerAsustado > 0) {
@@ -59,37 +59,44 @@ public class Fantasma extends Entidad implements Runnable, Movible {
         }
     }
 
-    @Override
-    public void mover(Laberinto laberinto) {
-        // Intenta continuar en la dirección actual; si no puede, elige otra
-        int nx = x + dirActual[0] * velocidad;
-        int ny = y + dirActual[1] * velocidad;
+@Override
+public void mover(Laberinto laberinto) {
+    int nx = x + dirActual[0] * velocidad;
+    int ny = y + dirActual[1] * velocidad;
 
-        if (puedeMoverse(nx, ny, laberinto)) {
-            x = nx;
-            y = ny;
-            // Con cierta probabilidad, cambia de dirección en intersecciones
-            if (random.nextInt(15) == 0) elegirDireccionAleatoria();
-        } else {
-            elegirDireccionAleatoria();
-        }
-
-        // Túnel lateral
-        if (x < 0) x = (Laberinto.COLUMNAS - 1) * Laberinto.TAM_CELDA;
-        if (x >= Laberinto.COLUMNAS * Laberinto.TAM_CELDA) x = 0;
+    if (puedeMoverse(nx, ny, laberinto)) {
+        x = nx;
+        y = ny;
+        if (random.nextInt(30) == 0) elegirNuevaDireccion(laberinto);
+    } else {
+        elegirNuevaDireccion(laberinto);
     }
 
-    private void elegirDireccionAleatoria() {
-        int[][] dirs = {{0,-1},{0,1},{-1,0},{1,0}};
-        // No ir en sentido contrario (evitar rebotes)
-        int[] contrario = {-dirActual[0], -dirActual[1]};
-        int intentos = 0;
-        do {
-            int idx = random.nextInt(4);
-            dirActual = dirs[idx];
-            intentos++;
-        } while (dirActual[0] == contrario[0] && dirActual[1] == contrario[1] && intentos < 8);
+    if (x < 0) x = (Laberinto.COLUMNAS - 1) * Laberinto.TAM_CELDA;
+    if (x >= Laberinto.COLUMNAS * Laberinto.TAM_CELDA) x = 0;
+}
+
+private void elegirNuevaDireccion(Laberinto laberinto) {
+    int[][] dirs = {{0,-1},{0,1},{-1,0},{1,0}};
+    int[] contrario = {-dirActual[0], -dirActual[1]};
+
+    // Primero intenta cualquier dirección válida que no sea el contrario
+    java.util.List<int[]> validas = new java.util.ArrayList<>();
+    for (int[] dir : dirs) {
+        if (dir[0] == contrario[0] && dir[1] == contrario[1]) continue;
+        int nx = x + dir[0] * velocidad;
+        int ny = y + dir[1] * velocidad;
+        if (puedeMoverse(nx, ny, laberinto)) validas.add(dir);
     }
+
+    if (!validas.isEmpty()) {
+        dirActual = validas.get(random.nextInt(validas.size()));
+    } else {
+        // Si no hay otra opción, permite el contrario
+        dirActual = contrario;
+    }
+}
+
 
     @Override
     public void moverArriba(Laberinto l) { dirActual = new int[]{0, -1}; }
@@ -111,13 +118,13 @@ public class Fantasma extends Entidad implements Runnable, Movible {
     }
 
     @Override
-    public void reiniciar() {
-        x = inicioX;
-        y = inicioY;
-        estado = EstadoFantasma.NORMAL;
-        timerAsustado = 0;
-        elegirDireccionAleatoria();
-    }
+public void reiniciar() {
+    x = inicioX;
+    y = inicioY;    
+    estado = EstadoFantasma.NORMAL;
+    timerAsustado = 0;
+    dirActual = new int[]{1, 0};
+}
 
     public void asustar() {
         if (estado != EstadoFantasma.MUERTO) {

@@ -2,11 +2,9 @@ package Vista;
 
 import Modelo.*;
 import Modelo.JuegoModelo.EstadoJuego;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Arc2D;
-import java.util.List;
+import javax.swing.*;
 
 /**
  * Panel principal de renderizado (MVC - Vista).
@@ -114,8 +112,9 @@ public class JuegoPanel extends JPanel {
     private void dibujarFantasmas(Graphics2D g) {
         int tam = Laberinto.TAM_CELDA;
         for (Fantasma f : modelo.getFantasmas()) {
+            if (!f.isActivo()) continue;
             Color color = f.getEstado() == Fantasma.EstadoFantasma.ASUSTADO
-                ? new Color(0, 0, 200) : f.getColor();
+            ? new Color(0, 0, 200) : f.getColor();
             int px = f.getX();
             int py = f.getY();
 
@@ -176,7 +175,7 @@ public class JuegoPanel extends JPanel {
                 color = Color.CYAN;
                 break;
             case PAUSADO:
-                msg = "PAUSA  —  ENTER para continuar";
+                msg = "PAUSA  —  R: reiniciar  |  ESC: salir  |  ENTER para continuar";
                 color = Color.ORANGE;
                 break;
             case VICTORIA:

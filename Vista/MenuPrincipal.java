@@ -1,3 +1,4 @@
+package Vista;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -22,7 +23,7 @@ import javafx.scene.input.KeyCode;
 
 import Controlador.JuegoControlador;
 import Modelo.JuegoModelo;
-import Vista.VentanaPrincipal;
+
 import javax.swing.SwingUtilities;
 
 public class MenuPrincipal extends Application {

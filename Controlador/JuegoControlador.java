@@ -5,9 +5,9 @@ import Modelo.JuegoModelo.EstadoJuego;
 import Modelo.PacMan;
 import Vista.JuegoPanel;
 import Vista.VentanaPrincipal;
-
-import javax.swing.*;
 import java.awt.event.*;
+import javax.swing.*;
+import Vista.MenuPrincipal;
 
 /**
  * Controlador principal del juego (MVC - Controlador).
@@ -65,10 +65,39 @@ public class JuegoControlador implements KeyListener {
         }
 
         // P: pausar / reanudar en pleno juego
-        if (tecla == KeyEvent.VK_P && estado == EstadoJuego.EN_CURSO) {
+        if (tecla == KeyEvent.VK_P && (estado == EstadoJuego.EN_CURSO || estado == EstadoJuego.PAUSADO)) {
             modelo.pausar();
             return;
         }
+
+        if (tecla == KeyEvent.VK_R && estado == EstadoJuego.PAUSADO) {
+            timerJuego.stop();
+            modelo.iniciarJuego();
+            timerJuego.start();
+            return;
+        }
+
+        if (tecla == KeyEvent.VK_ESCAPE && estado == EstadoJuego.PAUSADO) {
+            timerJuego.stop();
+            modelo.detenerHilosFantasmas();
+            ventana.dispose();
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                try {
+                    javafx.application.Platform.startup(() -> {});
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                javafx.application.Platform.runLater(() -> {
+                    try {
+                        new MenuPrincipal().start(new javafx.stage.Stage());
+                    } catch (Exception ex2) {
+                        ex2.printStackTrace();
+                    }
+                });
+            });
+            return;
+        }
+        
 
         // R: reiniciar desde GAME_OVER o VICTORIA
         if (tecla == KeyEvent.VK_R &&

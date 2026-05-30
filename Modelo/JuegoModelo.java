@@ -37,10 +37,10 @@ public class JuegoModelo {
         hilosFantasmas = new ArrayList<>();
 
         // Cuatro fantasmas con colores distintos — posiciones en la casa central
-        fantasmas.add(new Fantasma(8,  9, Color.RED,     "Blinky", this));
-        fantasmas.add(new Fantasma(9,  9, new Color(255,184,255), "Pinky",  this));
-        fantasmas.add(new Fantasma(10, 9, new Color(0,255,255),   "Inky",   this));
-        fantasmas.add(new Fantasma(9, 10, Color.ORANGE,  "Clyde",  this));
+            fantasmas.add(new Fantasma(9,  8, Color.RED,                  "Blinky", this));
+            fantasmas.add(new Fantasma(8,  8, new Color(255,184,255),     "Pinky",  this));
+            fantasmas.add(new Fantasma(10, 8, new Color(0,255,255),       "Inky",   this));
+            fantasmas.add(new Fantasma(9, 10, Color.ORANGE,               "Clyde",  this));
 
         puntuacion = 0;
         vidas = VIDAS_INICIALES;
@@ -88,11 +88,28 @@ public class JuegoModelo {
         // Verificar colisiones con fantasmas
         if (!pacman.isInvulnerable()) {
             for (Fantasma f : fantasmas) {
+                if (!f.isActivo()) continue;
                 if (f.colisionaCon(pacman)) {
                     if (f.getEstado() == Fantasma.EstadoFantasma.ASUSTADO) {
                         // Pac-Man come al fantasma
                         puntuacion += 200;
-                        f.reiniciar();
+                        f.setActivo(false);
+                        new Thread(() -> {
+                            try {
+                                long tiempoRestante = 6000;
+                                long intervalo = 100;
+                                while (tiempoRestante > 0) {
+                                    Thread.sleep(intervalo);
+                                    if (getEstadoJuego() == EstadoJuego.EN_CURSO) {
+                                        tiempoRestante -= intervalo;
+                                    }
+                                }
+                                f.reiniciar();
+                                f.setActivo(true);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }).start();
                     } else {
                         // Pac-Man pierde vida
                         perderVida();
@@ -130,7 +147,7 @@ public class JuegoModelo {
         }
     }
 
-    private void detenerHilosFantasmas() {
+    public void detenerHilosFantasmas() {
         for (Fantasma f : fantasmas) f.detener();
         for (Thread t : hilosFantasmas) t.interrupt();
     }
