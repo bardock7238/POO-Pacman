@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "main",
+            "request": "launch",
+            "mainClass": "main",
+            "projectName": "poo-pacman"
+        },
+        {
+            "type": "java",
+            "name": "Pac-Man (Maven)",
+            "request": "launch",
+            "mainClass": "Vista.MenuPrincipal",
+            "projectName": "poo-pacman"
+        }
+    ]
+}
